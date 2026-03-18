@@ -2,11 +2,12 @@ import time
 import os
 import json
 
-from logger import *
+from logger import Log
 
 class CacheHandler:
     def __init__(self):
         self.filePrefix = "priceCache"
+        self.logger = Log()
 
     def createFile(self):
         for file in os.listdir():
@@ -17,10 +18,10 @@ class CacheHandler:
         try:
             with open(self.fileName, "x"):
                 pass
-            log_info(f"Created Cachefile: {self.fileName,}")
+            self.logger.log_info(f"Created Cachefile: {self.fileName,}")
             return True
         except FileExistsError:
-            log_warning(f"Failed to create Cachefile: {self.fileName,}")
+            self.logger.log_error(f"Failed to create Cachefile: {self.fileName,}")
             return False
 
     def getLastCacheTime(self):
@@ -36,7 +37,7 @@ class CacheHandler:
 
     def write(self, data):
         if not (self.createFile()):
-            log_error("Cannot find file:" + self.fileName,)
+            self.logger.log_error("Cannot find file:" + self.fileName,)
             return
         
         with open(self.fileName, 'w', encoding='utf-8') as file:
@@ -55,12 +56,12 @@ class CacheHandler:
                     try:
                         return json.loads(data_string)
                     except json.JSONDecodeError:
-                        log_error(f"Invalid JSON in file {file}")
+                        self.logger.log_error(f"Invalid JSON in file {file}")
                         return None
                 except json.JSONDecodeError:
-                    log_error(f"Invalid JSON in file {file}")
+                    self.logger.log_error(f"Invalid JSON in file {file}")
                     return None
                 except Exception as e:
-                    log_error(f"Cannot read file {file}: {e}")
+                    self.logger.log_error(f"Cannot read file {file}: {e}")
                     return None
         return None 

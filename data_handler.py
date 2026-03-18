@@ -2,8 +2,6 @@ from typing import List
 from model import CompanySimple, CurrentPrice
 from datetime import datetime, timezone
 
-from logger import *
-
 class DataHandler:
     def __init__ (self):
         pass

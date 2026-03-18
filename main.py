@@ -1,18 +1,22 @@
 from cache_handler import CacheHandler
 from api_handler import APIHandler
 from data_handler import DataHandler
-from logger import *
+from logger import Log
 import time
 
 cHandler = CacheHandler()
 aHandler = APIHandler()
 dHandler = DataHandler()
+logger = Log()
 
 selectedCompany = "NRGi" # aHandler.getSelectedCompany()
-selectedMaxPrice = 1.6 #aHandler.getSelectedMaxPrice
+selectedMaxPrice = 1.5 #aHandler.getSelectedMaxPrice
 
+lastPrice = 100
 currentPrice = 100
+
 enableCharger = False
+lastEnableCharger = False
 
 rawData = 0
 
@@ -30,8 +34,7 @@ while True:
     elapsedInt = int(elapsedTime)
 
     if elapsedInt % 15 == 0:
-        log_info(f"Fetching Data in {300 - elapsedInt} seconds")
-        time.sleep(1)
+        logger.log_info(f"Fetching Data in {300 - elapsedInt} seconds", True)
 
     if elapsedTime > 300: # 5 minutes has passed
         rawData = aHandler.get(priceUrl)
@@ -39,21 +42,28 @@ while True:
         cHandler.write(rawData)
         lastGetTime = cHandler.getLastCacheTime()
 
-        if rawData != 0 and rawData != None:
-            currentPrice = dHandler.getPricePerKwh(rawData)
-            log_info(f"Fetched Price: {currentPrice}")
-
-        if currentPrice < selectedMaxPrice:
-            enableCharger = True
-        else:
-            enableCharger = False
-
-        log_info(f"Charger Enabled: {enableCharger}")
     else:
         rawData = cHandler.read()
         if rawData == "No Data":
             rawData = 0
-            log_error("No data from cache...")
+            logger.log_error("No data from cache...")
+
+    if rawData != 0 and rawData != None:
+        currentPrice = dHandler.getPricePerKwh(rawData)
+        
+    if currentPrice < selectedMaxPrice:
+        enableCharger = True
+    else:
+        enableCharger = False
+
+    if lastEnableCharger != enableCharger:
+        logger.log_info(f"Charger Enabled: {enableCharger}", True)
+
+    if lastPrice != currentPrice:
+        logger.log_info(f"Fetched New Price: {currentPrice} kr/kwh", True)
+    
+    lastPrice = currentPrice
+    lastEnableCharger = enableCharger
 
     
 
