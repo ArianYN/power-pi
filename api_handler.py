@@ -6,7 +6,7 @@ from model import CompanySimple, CurrentPrice
 from logger import *
 
 
-class RequestHandler:
+class APIHandler:
     def __init__(self):
         pass
     
@@ -14,3 +14,10 @@ class RequestHandler:
         response = requests.get(url)
         response.raise_for_status()
         return response.json()
+    
+    def getSelectedCompany(self):
+        pass
+
+    def getSelectedMaxPrice(self):
+        pass
+    

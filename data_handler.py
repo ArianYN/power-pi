@@ -10,13 +10,16 @@ class DataHandler:
 
     def getCompanyId(self, company_data, selCompany):
         for company in company_data:
-            name = company.get("name")
+            name = company["name"]
             
             if name == selCompany:
-                products = company.get("products")
-                id = products[0].get("id")
+                products = company["products"]
+                id = products[0]["id"]
                 return id
 
-    def getPriceData(self, data):
-        pass
-        # use data from the priceUrl, to retrieve the current kr/kwh and return it. Float
+    def getPricePerKwh(self, data):
+        priceData = data['prices']
+        priceData = priceData[0]['price']
+
+        totalPrice = priceData['total']
+        return totalPrice
