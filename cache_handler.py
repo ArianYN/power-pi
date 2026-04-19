@@ -9,7 +9,7 @@ class CacheHandler:
         self.filePrefix = "priceCache"
         self.logger = Log()
 
-    def createFile(self):
+    def __createFile(self):
         for file in os.listdir():
             if self.filePrefix in file:
                 os.remove(file)
@@ -18,10 +18,10 @@ class CacheHandler:
         try:
             with open(self.fileName, "x"):
                 pass
-            self.logger.log_info(f"Created Cachefile: {self.fileName,}")
+            self.logger.log_info(f"Created Cachefile: {self.fileName,}", True)
             return True
         except FileExistsError:
-            self.logger.log_error(f"Failed to create Cachefile: {self.fileName,}")
+            self.logger.log_error(f"Failed to create Cachefile: {self.fileName,}", True)
             return False
 
     def getLastCacheTime(self):
@@ -36,7 +36,7 @@ class CacheHandler:
         return self.fileName
 
     def write(self, data):
-        if not (self.createFile()):
+        if not (self.__createFile()):
             self.logger.log_error("Cannot find file:" + self.fileName,)
             return
         

@@ -4,66 +4,73 @@ from data_handler import DataHandler
 from logger import Log
 import time
 
-cHandler = CacheHandler()
-aHandler = APIHandler()
-dHandler = DataHandler()
-logger = Log()
+class PowerPi:
+    def __init__(self, dataIntervalSeconds):
+        self.cache = CacheHandler()
+        self.api = APIHandler()
+        self.data = DataHandler()
+        self.logger = Log()
 
-selectedCompany = "NRGi" # aHandler.getSelectedCompany()
-selectedMaxPrice = 1.5 #aHandler.getSelectedMaxPrice
+        self.hasRead = False
 
-lastPrice = 100
-currentPrice = 100
+        self.selectedCompany = "NRGi" # self.__getSelectedCompany()
+        self.selectedMaxPrice = 1.5 # self.__getSelectedPrice()
 
-enableCharger = False
-lastEnableCharger = False
+        self.currentPrice = 300
+        self.dataInterval = dataIntervalSeconds
 
-rawData = 0
+        self.enableCharger = False
+        self.rawData = 0
+        self.lastGetTime = self.cache.getLastCacheTime()
 
-lastGetTime = cHandler.getLastCacheTime()
+        self.companies = self.api.get("https://stromligning.dk/api/companies?region=DK1&periodMonths=1")
+        self.companyId = self.data.getCompanyId(self.companies, self.selectedCompany)
+        self.priceUrl = f"https://stromligning.dk/api/prices?productId={self.companyId}&priceArea=DK1"
 
-compData = aHandler.get("https://stromligning.dk/api/companies?region=DK1&periodMonths=1")
-compId = dHandler.getCompanyId(compData, selectedCompany)
+    def __getSelectedCompany(self):
+        pass
 
-priceUrl = f"https://stromligning.dk/api/prices?productId={compId}&priceArea=DK1"
-
-while True:
-    time.sleep(1)
-    elapsedTime = time.time() - lastGetTime
-
-    elapsedInt = int(elapsedTime)
-
-    if elapsedInt % 15 == 0:
-        logger.log_info(f"Fetching Data in {300 - elapsedInt} seconds", True)
-
-    if elapsedTime > 300: # 5 minutes has passed
-        rawData = aHandler.get(priceUrl)
-
-        cHandler.write(rawData)
-        lastGetTime = cHandler.getLastCacheTime()
-
-    else:
-        rawData = cHandler.read()
-        if rawData == "No Data":
-            rawData = 0
-            logger.log_error("No data from cache...")
-
-    if rawData != 0 and rawData != None:
-        currentPrice = dHandler.getPricePerKwh(rawData)
-        
-    if currentPrice < selectedMaxPrice:
-        enableCharger = True
-    else:
-        enableCharger = False
-
-    if lastEnableCharger != enableCharger:
-        logger.log_info(f"Charger Enabled: {enableCharger}", True)
-
-    if lastPrice != currentPrice:
-        logger.log_info(f"Fetched New Price: {currentPrice} kr/kwh", True)
+    def __getSelectedPrice(self):
+        pass
     
-    lastPrice = currentPrice
-    lastEnableCharger = enableCharger
+    def __evaluateData(self):
+        if self.rawData != 0 and self.rawData != None:
+            self.currentPrice = self.data.getPricePerKwh(self.rawData)
+            self.logger.log_info(f"Fetched Price: {self.currentPrice} kr/kwh", True)
 
+        if self.currentPrice < self.selectedMaxPrice:
+            self.enableCharger = True
+        else:
+            self.enableCharger = False
+
+        self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
+
+    def __getTime(self):
+        elapsedTime = time.time() - self.lastGetTime
+        elapsedInt = int(elapsedTime)
+
+        if elapsedInt % 15 == 0:
+            self.logger.log_info(f"Fetching Data in {self.dataInterval - elapsedInt} seconds", True)
+
+        return elapsedTime
     
+    def __cacheData(self):
+        self.cache.write(self.rawData)
+        self.lastGetTime = self.cache.getLastCacheTime()
 
+    def start(self):
+        while True:
+            elapsedTime = self.__getTime()
+
+            if elapsedTime > self.dataInterval:
+                self.rawData = self.api.get(self.priceUrl)
+                self.__cacheData()
+                self.__evaluateData()
+            else:
+                if not self.hasRead:
+                    self.logger.log_info(f"Fetching data in {self.dataInterval - int(elapsedTime)} seconds", True)
+                    self.hasRead = True
+
+
+powerPi = PowerPi(300)
+powerPi.start()
