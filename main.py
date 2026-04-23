@@ -3,6 +3,7 @@ from api import API
 from data_handler import DataHandler
 from logger import Log
 import time
+import psutil
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -13,6 +14,11 @@ class PowerPi:
         self.hasRead = False
         self.lastLoggedSecond = -1
         self.enableCharger = False
+
+    def printUsage(self):
+        process = psutil.Process()
+        self.logger.log_info(f"Memory: {round(((process.memory_info().rss / 1024) / 1024), 1)} MB", True)
+        self.logger.log_info(f"CPU: {process.cpu_percent()} %", True)
 
     def start(self):
         while True:
@@ -31,6 +37,7 @@ class PowerPi:
                 self.enableCharger = self.data.shouldEnableCharger(self.rawData)
 
                 self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
+                self.printUsage()
                 self.logger.log_divider()
             else:
                 if not self.hasRead:
