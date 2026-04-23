@@ -2,6 +2,7 @@ from enum import Enum
 from api import API
 from logger import Log
 from cache_handler import CacheHandler
+import config
 import time
 
 class DataHandler:
@@ -11,7 +12,7 @@ class DataHandler:
 
         self.companiesUrl = "https://stromligning.dk/api/companies?region=DK1&periodMonths=1"
         self.priceUrl = ""
-        self.configUrl = "http://10.133.51.103:9090/power-table"
+        self.configUrl = f"http://10.133.51.103:9090/power-table?userId=auth0|{config.USER_ID}"
 
         self.confCompany = ""
         self.confMaxPrice = 0
@@ -34,6 +35,9 @@ class DataHandler:
             
             if name == self.confCompany:
                 products = company["products"]
+                if len(products) == 0:
+                    self.logger.log_error("No Products for Company - Returning empty string")
+                    return ""
                 id = products[0]["id"]
                 return id
             
@@ -70,11 +74,10 @@ class DataHandler:
             self.allCompanies = API.Get(self.companiesUrl)
             self.allCompanies_GetTime = time.time()
         
-        newestConfig = API.Get(self.configUrl)
-        newestConfig = newestConfig[len(newestConfig)-1]
+        config = API.Get(self.configUrl)[0]
 
-        self.confCompany = newestConfig['company']
-        self.confMaxPrice = newestConfig['price']
+        self.confCompany = config['company']
+        self.confMaxPrice = config['price']
 
         self.logger.log_info(f'Fetched Company and Max Price: [{self.confCompany}, {self.confMaxPrice} kr/kwh]', True)
 
