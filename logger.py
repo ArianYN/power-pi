@@ -21,3 +21,6 @@ class Log:
             print(f"{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} [WARNING] {data}")
         else:
             print(f"[WARNING] {data}")
+
+    def log_divider(self):
+        print("-------------------------------------------------------------------------------------------------")
