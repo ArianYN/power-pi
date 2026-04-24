@@ -2,7 +2,7 @@ from enum import Enum
 from api import API
 from logger import Log
 from cache_handler import CacheHandler
-import config
+import config as _config
 import time
 
 class DataHandler:
@@ -12,19 +12,20 @@ class DataHandler:
 
         self.companiesUrl = "https://stromligning.dk/api/companies?region=DK1&periodMonths=1"
         self.priceUrl = ""
-        self.configUrl = f"http://10.133.51.103:9090/power-table?userId=auth0|{config.USER_ID}"
+        self.configUrl = f"http://10.133.51.103:9090/power-table?userId=auth0|{_config.USER_ID}"
+
+        self.priceData_Filename = "priceCache"
+        self.allCompanies_Filename = "companiesCache"
+
+        self.priceData_GetTime = self.cache.getFileCacheTime(self.priceData_Filename)
+        self.allCompanies_GetTime = self.cache.getFileCacheTime(self.allCompanies_Filename)
 
         self.confCompany = ""
         self.confMaxPrice = 0
 
-        self.powerPrice = 1000
-
-        self.allCompanies = API.Get(self.companiesUrl)
-        self.allCompanies_GetTime = 0
+        self.currentPrice = 1000
 
         self.updatePowerConfig()
-
-        self.data_GetTime = self.cache.getLastCacheTime()
 
     def __updatePriceUrl(self, newId):
         self.priceUrl = f"https://stromligning.dk/api/prices?productId={newId}&priceArea=DK1"
@@ -42,15 +43,15 @@ class DataHandler:
                 return id
             
     def getLastGetTime(self):
-        return time.time() - self.data_GetTime
+        return time.time() - self.priceData_GetTime
             
     def getPriceUrl(self):
         return self.priceUrl
 
-    def saveData(self, data):
-        self.cache.write(data)
-        self.data_GetTime = self.cache.getLastCacheTime()
-        return self.data_GetTime
+    def savePriceData(self, data):
+        self.cache.write(self.priceData_Filename, data)
+        self.priceData_GetTime = self.cache.getFileCacheTime(self.priceData_Filename)
+        return self.priceData_GetTime
 
     def getPricePerKwh(self, data):
         priceData = data['prices']
@@ -59,22 +60,26 @@ class DataHandler:
         totalPrice = priceData['total']
         return totalPrice
 
-    def shouldEnableCharger(self, rawData):
+    def evaluate(self, rawData):
         if rawData != 0 and rawData != None:
-            self.powerPrice = self.getPricePerKwh(rawData)
-            self.logger.log_info(f"Fetched Price: {str(round(self.powerPrice, 2))} kr/kwh", True)
+            self.currentPrice = self.getPricePerKwh(rawData)
+            self.logger.log_info(f"Fetched Price: {str(round(self.currentPrice, 2))} kr/kwh", True)
 
-        if self.powerPrice < self.confMaxPrice:
+        if self.currentPrice < self.confMaxPrice:
             return True
         else:
             return False
         
     def updatePowerConfig(self):
-        if (time.time() - self.allCompanies_GetTime) > 600:
+        elapsedTime = time.time() - self.allCompanies_GetTime
+        if elapsedTime > 600:
             self.allCompanies = API.Get(self.companiesUrl)
-            self.allCompanies_GetTime = time.time()
+            self.cache.write(self.allCompanies_Filename, self.allCompanies)
+            self.allCompanies_GetTime = self.cache.getFileCacheTime(self.allCompanies_Filename)
+        else:
+            self.allCompanies = self.cache.read(self.allCompanies_Filename)
         
-        config = API.Get(self.configUrl)[0]
+        config = API.GetWithToken(self.configUrl, _config.BEARER_TOKEN)[0]
 
         self.confCompany = config['company']
         self.confMaxPrice = config['price']

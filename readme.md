@@ -26,4 +26,6 @@ This program **requires** a `config.py` file in the same directory with the foll
 
 ```python
 USER_ID = "your_user_id_here"
+ADMIN_KEY = "your_admin_key_here"
+BEARER_TOKEN = "your_token_here"
 ```

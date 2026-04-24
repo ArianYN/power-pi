@@ -1,4 +1,3 @@
-from cache_handler import CacheHandler
 from api import API
 from data_handler import DataHandler
 from logger import Log
@@ -31,13 +30,16 @@ class PowerPi:
 
             if elapsedTime > self.dataInterval:
                 self.logger.log_divider()
+
                 self.data.updatePowerConfig()
-                self.rawData = API.Get(self.data.getPriceUrl())
-                self.lastGetTime = self.data.saveData(self.rawData)
-                self.enableCharger = self.data.shouldEnableCharger(self.rawData)
+
+                rawData = API.Get(self.data.getPriceUrl())
+                self.data.savePriceData(rawData)
+                self.enableCharger = self.data.evaluate(rawData)
 
                 self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
                 self.printUsage()
+
                 self.logger.log_divider()
             else:
                 if not self.hasRead:

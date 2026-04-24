@@ -6,62 +6,63 @@ from logger import Log
 
 class CacheHandler:
     def __init__(self):
-        self.filePrefix = "priceCache"
         self.logger = Log()
 
-    def __createFile(self):
+    def __createFile(self, fileName):
         for file in os.listdir():
-            if self.filePrefix in file:
+            if fileName in file:
                 os.remove(file)
+        
+        constructFileName = f"{fileName}_{int(time.time())}.txt"
 
-        self.fileName = f"{self.filePrefix}_{int(time.time())}.txt"
         try:
-            with open(self.fileName, "x"):
+            with open(constructFileName, "x"):
                 pass
-            self.logger.log_info(f"Created Cachefile: {self.fileName,}", True)
-            return True
+            self.logger.log_info(f"Created Cachefile: {constructFileName}", True)
+            return constructFileName
         except FileExistsError:
-            self.logger.log_error(f"Failed to create Cachefile: {self.fileName,}", True)
-            return False
-
-    def getLastCacheTime(self):
-        allFiles = os.listdir()
-        for file in allFiles:
-            if self.filePrefix in file:
+            self.logger.log_error(f"Failed to create Cachefile: {constructFileName}", True)
+            return None
+    
+    def getFileCacheTime(self, fileName):
+        for file in os.listdir():
+            if fileName in file:
                 time = file.split("_")[1].split(".")[0]
                 return int(time)
         return 0
     
-    def getFileName(self):
-        return self.fileName
+    def write(self, fileName, data):
+        file = self.__createFile(fileName)
 
-    def write(self, data):
-        if not (self.__createFile()):
-            self.logger.log_error("Cannot find file:" + self.fileName,)
+        if file == None:
+            self.logger.log_error(f"Cannot find file: {fileName}", True)
             return
-        
-        with open(self.fileName, 'w', encoding='utf-8') as file:
+    
+        with open(file, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=2, ensure_ascii=False)
-
-    def read(self):
+        
+    def read(self, fileName):
         for file in os.listdir():
-            if self.filePrefix in file:
+            if fileName in file:
                 try:
-                    with open(file, 'r', encoding='utf-8') as f:
-                        data_string = f.read()
-                    return json.loads(data_string)
+                    with open(file, 'r', encoding='utf-8', errors='ignore') as f:
+                        data = f.read()
+                    return json.loads(data)
+                
                 except UnicodeDecodeError:
                     with open(file, 'r', encoding='utf-8', errors='ignore') as f:
-                        data_string = f.read()
+                        data = f.read()
                     try:
-                        return json.loads(data_string)
+                        return json.loads(data)
                     except json.JSONDecodeError:
                         self.logger.log_error(f"Invalid JSON in file {file}")
                         return None
+                
                 except json.JSONDecodeError:
                     self.logger.log_error(f"Invalid JSON in file {file}")
                     return None
+                
                 except Exception as e:
                     self.logger.log_error(f"Cannot read file {file}: {e}")
                     return None
-        return None 
+        return None
