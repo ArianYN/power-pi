@@ -1,7 +1,6 @@
 from api import API
 from data_handler import DataHandler
 from logger import Log
-import time
 import psutil
 
 class PowerPi:
