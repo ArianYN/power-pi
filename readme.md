@@ -6,7 +6,7 @@ PowerPi is a Python application that monitors electricity prices and automatical
 
 ### How It Works:
 
-1. **Fetches Electricity Prices**: Every 5 minutes, the program connects to a Danish electricity price API to get the current electricity price per kWh.
+1. **Fetches Electricity Prices**: Every 5 minutes, the program connects to a Strømligning API to get the current electricity price per kWh.
 
 2. **Retrieves Configuration**: It gets your personal settings from Boardom Dashboard. These settings are Electricity Company and Max Price/kwh
 
@@ -25,7 +25,11 @@ PowerPi is a Python application that monitors electricity prices and automatical
 This program **requires** a `config.py` file in the same directory with the following:
 
 ```python
-USER_ID = "your_user_id_here"
-ADMIN_KEY = "your_admin_key_here"
-BEARER_TOKEN = "your_token_here"
+USER_ID = "your_user_id"
+ADMIN_KEY = "your_admin_key"
+HOSTNAME = "your_hostname"
+AUDIENCE = "your_audience"
+OLD_JTI = "your_old_jti"
+SCOPES = ["scope0", "scope1"]
+SERVICE = "your_service"
 ```

@@ -2,6 +2,7 @@ from api import API
 from data_handler import DataHandler
 from logger import Log
 import psutil
+import time
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -15,6 +16,7 @@ class PowerPi:
 
     def printUsage(self):
         process = psutil.Process()
+        self.logger.log_divider()
         self.logger.log_info(f"Memory: {round(((process.memory_info().rss / 1024) / 1024), 1)} MB", True)
         self.logger.log_info(f"CPU: {process.cpu_percent()} %", True)
 
@@ -31,8 +33,17 @@ class PowerPi:
                 self.logger.log_divider()
 
                 self.data.updatePowerConfig()
+                
+                rawData = None
+                priceUrl = self.data.getPriceUrl()
 
-                rawData = API.Get(self.data.getPriceUrl())
+                if priceUrl != '':
+                    rawData = API.Get(priceUrl)
+                else:
+                    self.logger.log_info("Retrying in 5 seconds...")
+                    time.sleep(5)
+                    continue
+
                 self.data.savePriceData(rawData)
                 self.enableCharger = self.data.evaluate(rawData)
 

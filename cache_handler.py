@@ -18,7 +18,6 @@ class CacheHandler:
         try:
             with open(constructFileName, "x"):
                 pass
-            self.logger.log_info(f"Created Cachefile: {constructFileName}", True)
             return constructFileName
         except FileExistsError:
             self.logger.log_error(f"Failed to create Cachefile: {constructFileName}", True)
