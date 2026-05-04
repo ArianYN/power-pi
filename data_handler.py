@@ -2,6 +2,7 @@ from enum import Enum
 from api import API
 from logger import Log
 from cache_handler import CacheHandler
+from redis_cache import RedisCache
 import config as _config
 import time
 import datetime
@@ -11,6 +12,7 @@ class DataHandler:
     def __init__ (self):
         self.logger = Log()
         self.cache = CacheHandler()
+        self.rCache = RedisCache()
 
         self.token = None
         
@@ -64,12 +66,12 @@ class DataHandler:
     def getLastGetTime(self):
         return time.time() - self.priceData_GetTime
             
-    def     getPriceUrl(self):
+    def getPriceUrl(self):
         return self.priceUrl
 
     def savePriceData(self, data):
-        self.cache.write(self.priceData_Filename, data)
-        self.priceData_GetTime = self.cache.getFileCacheTime(self.priceData_Filename)
+        self.rCache.write(self.priceData_Filename, data)
+        self.priceData_GetTime = self.rCache.getLastCacheTime(self.priceData_Filename)
         return self.priceData_GetTime
 
     def getPricePerKwh(self, data):
