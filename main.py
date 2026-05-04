@@ -3,6 +3,11 @@ from data_handler import DataHandler
 from logger import Log
 import psutil
 import time
+from enum import Enum
+
+class PowerMode(Enum):
+    FLAT_PRICE = 1,
+    HOURLY = 2
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -13,6 +18,8 @@ class PowerPi:
         self.hasRead = False
         self.lastLoggedSecond = -1
         self.enableCharger = False
+
+        self.mode = PowerMode.HOURLY
 
     def printUsage(self):
         process = psutil.Process()
@@ -33,9 +40,9 @@ class PowerPi:
                 self.logger.log_divider()
 
                 self.data.updatePowerConfig()
-                
-                rawData = None
+
                 priceUrl = self.data.getPriceUrl()
+                rawData = None
 
                 if priceUrl != '':
                     rawData = API.Get(priceUrl)
@@ -45,11 +52,16 @@ class PowerPi:
                     continue
 
                 self.data.savePriceData(rawData)
-                self.enableCharger = self.data.evaluate(rawData)
 
-                self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
+                if self.mode == PowerMode.FLAT_PRICE:
+                    self.enableCharger = self.data.evaluate(rawData)
+                    self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
+                elif self.mode == PowerMode.HOURLY:
+                    priceData = rawData['prices']
+                    priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
+                    print(priceDataSorted)
+
                 self.printUsage()
-
                 self.logger.log_divider()
             else:
                 if not self.hasRead:

@@ -4,6 +4,7 @@ from logger import Log
 from cache_handler import CacheHandler
 import config as _config
 import time
+import datetime
 import json
 
 class DataHandler:
@@ -32,7 +33,9 @@ class DataHandler:
         self.updatePowerConfig()
 
     def __updatePriceUrl(self, newId):
-        self.priceUrl = f"https://stromligning.dk/api/prices?productId={newId}&priceArea=DK1"
+        today = datetime.date.today()
+        todayStr = today.strftime("%Y-%m-%d")
+        self.priceUrl = f"https://stromligning.dk/api/prices?from={todayStr}&productId={newId}&priceArea=DK1"
 
     def _fetchNewToken(self):
         res = API.PostXAdminKey(_config.HOSTNAME, _config.ADMIN_KEY, _config.SERVICE, _config.AUDIENCE, _config.SCOPES, _config.OLD_JTI)
@@ -61,7 +64,7 @@ class DataHandler:
     def getLastGetTime(self):
         return time.time() - self.priceData_GetTime
             
-    def getPriceUrl(self):
+    def     getPriceUrl(self):
         return self.priceUrl
 
     def savePriceData(self, data):
