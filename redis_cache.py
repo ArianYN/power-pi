@@ -1,10 +1,12 @@
+import os
 import redis
 import time
 import json
 
 class RedisCache:
     def __init__(self):
-        self.r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        host = os.environ.get("REDIS_HOST", "localhost")
+        self.r = redis.Redis(host=host, port=6379, decode_responses=True)
 
     def getLastCacheTime(self, name):
         for cache in self.r.keys():
