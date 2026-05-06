@@ -17,19 +17,3 @@ PowerPi is a Python application that monitors electricity prices and automatical
 5. **Caches Data**: It stores the latest price information in a cache file for reference.
 
 6. **Logs Everything**: The program provides detailed logs of what it's doing, so you can monitor its activity.
-
-## Setup Requirements
-
-### You Need a `config.py` File
-
-This program **requires** a `config.py` file in the same directory with the following:
-
-```python
-USER_ID = "your_user_id"
-ADMIN_KEY = "your_admin_key"
-HOSTNAME = "your_hostname"
-AUDIENCE = "your_audience"
-OLD_JTI = "your_old_jti"
-SCOPES = ["scope0", "scope1"]
-SERVICE = "your_service"
-```
