@@ -6,8 +6,8 @@ import time
 from enum import Enum
 
 class PowerMode(Enum):
-    FLAT_PRICE = 1,
-    HOURLY = 2
+    PRICE_BASED = 1,
+    HOUR_BASED = 2
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -19,7 +19,7 @@ class PowerPi:
         self.lastLoggedSecond = -1
         self.enableCharger = False
 
-        self.mode = PowerMode.HOURLY
+        self.mode = PowerMode.PRICE_BASED
 
     def printUsage(self):
         process = psutil.Process()
@@ -37,6 +37,8 @@ class PowerPi:
                 self.lastLoggedSecond = elapsedInt
 
             if elapsedTime > self.dataInterval:
+                self.logger.log_info(f"Mode: {"Price-Based" if self.mode == PowerMode.PRICE_BASED else "Hour-Based"}")
+
                 self.logger.log_divider()
 
                 self.data.updatePowerConfig()
@@ -53,10 +55,10 @@ class PowerPi:
 
                 self.data.savePriceData(rawData)
 
-                if self.mode == PowerMode.FLAT_PRICE:
+                if self.mode == PowerMode.PRICE_BASED:
                     self.enableCharger = self.data.evaluate(rawData)
                     self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
-                elif self.mode == PowerMode.HOURLY:
+                elif self.mode == PowerMode.HOUR_BASED:
                     priceData = rawData['prices']
                     priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
                     print(priceDataSorted)
