@@ -16,7 +16,7 @@ class DataHandler:
         
         self.companiesUrl = "https://stromligning.dk/api/companies?region=DK1&periodMonths=1"
         self.priceUrl = ""
-        self.configUrl = f"http://10.133.51.103:9090/power-table?userId=auth0|{_config.USER_ID}"
+        self.configUrl = f"https://powerpi.mercantec.tech/power-table?userId=auth0|{_config.USER_ID}"
 
         self.priceData_Filename = "priceCache"
         self.allCompanies_Filename = "companiesCache"
