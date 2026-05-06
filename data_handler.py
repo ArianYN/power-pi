@@ -7,6 +7,7 @@ import config as _config
 import time
 import datetime
 import json
+from requests import Response
 
 class DataHandler:
     def __init__ (self):
@@ -91,20 +92,23 @@ class DataHandler:
         else:
             return False
         
-    def _handleHttpError(self, errCode):
-        match errCode:
-            case 401:
-                self.logger.log_warning(f"{errCode} Unauthorized - Token not valid - Fetching new...")
-                if self._fetchNewToken():
-                    self.updatePowerConfig()
-            case 404:
-                self.logger.log_error(f"{errCode} Not Found - Invalid URL?")
+    def _handleHttpError(self, response: Response):
+        errCode = response.status_code
+        reason = response.reason
+        description = response.text
         
+        if errCode == 401:
+            self.logger.log_warning(f"{errCode} {reason} - {description} - Fetching new...")
+            if self._fetchNewToken():
+                self.updatePowerConfig()
+        else:
+            self.logger.log_error(f"{errCode} {reason} - {description}")
+    
     def updatePowerConfig(self):
         elapsedTime = time.time() - self.allCompanies_GetTime
         if elapsedTime > 600:
             self.allCompanies = API.Get(self.companiesUrl)
-            self.cache.write(self.allCompanies_Filename, self.allCompanies)
+            self.rCache.write(self.allCompanies_Filename, self.allCompanies)
             self.allCompanies_GetTime = self.cache.getFileCacheTime(self.allCompanies_Filename)
         else:
             self.allCompanies = self.cache.read(self.allCompanies_Filename)
@@ -116,7 +120,7 @@ class DataHandler:
             
         config = API.GetWithToken(self.configUrl, self.token)
 
-        if type(config) is int:
+        if not isinstance(config, list):
             self._handleHttpError(config)
             return
 
