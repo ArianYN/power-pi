@@ -21,9 +21,9 @@ class API:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
         except requests.HTTPError:
-            return response.status_code
+            return response
         except:
-            return response.status_code
+            return response
         return response.json()
     
     @staticmethod

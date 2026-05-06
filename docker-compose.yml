@@ -1,0 +1,19 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      USER_ID: ${USER_ID}
+      ADMIN_KEY: ${ADMIN_KEY}
+      HOSTNAME: ${HOSTNAME}
+      AUDIENCE: ${AUDIENCE}
+      OLD_JTI: ${OLD_JTI}
+      SCOPES: ${SCOPES}
+      SERVICE: ${SERVICE}

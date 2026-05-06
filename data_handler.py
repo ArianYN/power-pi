@@ -1,16 +1,16 @@
 from enum import Enum
 from api import API
 from logger import Log
-from cache_handler import CacheHandler
+from redis_cache import RedisCache
 import config as _config
 import time
 import datetime
-import json
+from requests import Response
 
 class DataHandler:
     def __init__ (self):
         self.logger = Log()
-        self.cache = CacheHandler()
+        self.rCache = RedisCache()
 
         self.token = None
         
@@ -21,8 +21,8 @@ class DataHandler:
         self.priceData_Filename = "priceCache"
         self.allCompanies_Filename = "companiesCache"
 
-        self.priceData_GetTime = self.cache.getFileCacheTime(self.priceData_Filename)
-        self.allCompanies_GetTime = self.cache.getFileCacheTime(self.allCompanies_Filename)
+        self.priceData_GetTime = self.rCache.getLastCacheTime(self.priceData_Filename)
+        self.allCompanies_GetTime = self.rCache.getLastCacheTime(self.allCompanies_Filename)
 
         self.confCompany = ""
         self.confMaxPrice = 0
@@ -62,14 +62,14 @@ class DataHandler:
                 return id
             
     def getLastGetTime(self):
-        return time.time() - self.priceData_GetTime
+        return int(time.time()) - self.priceData_GetTime
             
-    def     getPriceUrl(self):
+    def getPriceUrl(self):
         return self.priceUrl
 
     def savePriceData(self, data):
-        self.cache.write(self.priceData_Filename, data)
-        self.priceData_GetTime = self.cache.getFileCacheTime(self.priceData_Filename)
+        self.rCache.write(self.priceData_Filename, data)
+        self.priceData_GetTime = self.rCache.getLastCacheTime(self.priceData_Filename)
         return self.priceData_GetTime
 
     def getPricePerKwh(self, data):
@@ -89,23 +89,26 @@ class DataHandler:
         else:
             return False
         
-    def _handleHttpError(self, errCode):
-        match errCode:
-            case 401:
-                self.logger.log_warning(f"{errCode} Unauthorized - Token not valid - Fetching new...")
-                if self._fetchNewToken():
-                    self.updatePowerConfig()
-            case 404:
-                self.logger.log_error(f"{errCode} Not Found - Invalid URL?")
+    def _handleHttpError(self, response: Response):
+        errCode = response.status_code
+        reason = response.reason
+        description = response.text
         
+        if errCode == 401:
+            self.logger.log_warning(f"{errCode} {reason} - {description} - Fetching new...")
+            if self._fetchNewToken():
+                self.updatePowerConfig()
+        else:
+            self.logger.log_error(f"{errCode} {reason} - {description}")
+    
     def updatePowerConfig(self):
-        elapsedTime = time.time() - self.allCompanies_GetTime
+        elapsedTime = int(time.time()) - self.allCompanies_GetTime
         if elapsedTime > 600:
             self.allCompanies = API.Get(self.companiesUrl)
-            self.cache.write(self.allCompanies_Filename, self.allCompanies)
-            self.allCompanies_GetTime = self.cache.getFileCacheTime(self.allCompanies_Filename)
+            self.rCache.write(self.allCompanies_Filename, self.allCompanies)
+            self.allCompanies_GetTime = self.rCache.getLastCacheTime(self.allCompanies_Filename)
         else:
-            self.allCompanies = self.cache.read(self.allCompanies_Filename)
+            self.allCompanies = self.rCache.readAll(self.allCompanies_Filename)
         
         if self.token == None:
             self.logger.log_warning("No Token - Trying to fetch new token...")
@@ -114,7 +117,7 @@ class DataHandler:
             
         config = API.GetWithToken(self.configUrl, self.token)
 
-        if type(config) is int:
+        if not isinstance(config, list):
             self._handleHttpError(config)
             return
 
