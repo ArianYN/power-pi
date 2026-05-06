@@ -17,3 +17,19 @@ PowerPi is a Python application that monitors electricity prices and automatical
 5. **Caches Data**: It stores the latest price information in a cache file for reference.
 
 6. **Logs Everything**: The program provides detailed logs of what it's doing, so you can monitor its activity.
+
+### Setting Environment Variables
+
+Create a `.env` file in the project root or set them in your Docker Compose file:
+
+```bash
+export USER_ID="your-user-id"
+export ADMIN_KEY="your-admin-key"
+export HOSTNAME="https://your-hostname"
+export AUDIENCE="https://your-audience"
+export OLD_JTI="your-jti"
+export SCOPES="scope1,scope2,scope3"
+export SERVICE="power-pi"
+```
+
+
