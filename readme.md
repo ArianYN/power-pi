@@ -23,13 +23,13 @@ PowerPi is a Python application that monitors electricity prices and automatical
 Create a `.env` file in the project root or set them in your Docker Compose file:
 
 ```bash
-export USER_ID="your-user-id"
-export ADMIN_KEY="your-admin-key"
-export HOSTNAME="https://your-hostname"
-export AUDIENCE="https://your-audience"
-export OLD_JTI="your-jti"
-export SCOPES="scope1,scope2,scope3"
-export SERVICE="power-pi"
+USER_ID="your-user-id"
+ADMIN_KEY="your-admin-key"
+HOSTNAME="https://your-hostname"
+AUDIENCE="https://your-audience"
+OLD_JTI="your-jti"
+SCOPES="scope1,scope2,scope3"
+SERVICE="power-pi"
 ```
 
 
