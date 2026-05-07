@@ -6,6 +6,7 @@ import config as _config
 import time
 import datetime
 from requests import Response
+from models import *
 
 class DataHandler:
     def __init__ (self):
@@ -24,8 +25,7 @@ class DataHandler:
         self.priceData_GetTime = self.rCache.getLastCacheTime(self.priceData_Filename)
         self.allCompanies_GetTime = self.rCache.getLastCacheTime(self.allCompanies_Filename)
 
-        self.confCompany = ""
-        self.confMaxPrice = 0
+        self.powerConfig = PowerConfig(None, None, None, None)
 
         self.currentPrice = 1000
 
@@ -53,7 +53,7 @@ class DataHandler:
         for company in self.allCompanies:
             name = company["name"]
             
-            if name == self.confCompany:
+            if name == self.powerConfig.company:
                 products = company["products"]
                 if len(products) == 0:
                     self.logger.log_error("No Products for Company - Returning empty string")
@@ -66,6 +66,9 @@ class DataHandler:
             
     def getPriceUrl(self):
         return self.priceUrl
+    
+    def getPowerConfig(self):
+        return self.powerConfig
 
     def savePriceData(self, data):
         self.rCache.write(self.priceData_Filename, data)
@@ -79,15 +82,53 @@ class DataHandler:
         totalPrice = priceData['total']
         return totalPrice
 
-    def evaluate(self, rawData):
+    def evaluate_PriceBased(self, rawData):
         if rawData != 0 and rawData != None:
             self.currentPrice = self.getPricePerKwh(rawData)
             self.logger.log_info(f"Fetched Price: {str(round(self.currentPrice, 2))} kr/kwh", True)
 
-        if self.currentPrice <= self.confMaxPrice:
+        if self.currentPrice <= self.powerConfig.price:
             return True
         else:
             return False
+        
+    def evaluate_HourBased(self, sortedData):
+        quarters = 4 * self.powerConfig.hours
+        
+        selectedData = sortedData[:quarters]
+    
+        uniqueHours = set()
+        
+        tzOffsetHours = 0
+        if selectedData:
+            try:
+                utcDateStr = selectedData[0].get('date')
+                localDateStr = selectedData[0].get('localDate')
+                if utcDateStr and localDateStr:
+                    utcDt = datetime.datetime.fromisoformat(utcDateStr.replace('Z', '+00:00'))
+                    localDt = datetime.datetime.fromisoformat(localDateStr)
+                    tzOffsetHours = (localDt.hour - utcDt.hour) % 24
+            except Exception as e:
+                self.logger.log_error(f"Failed to calculate timezone offset: {str(e)}", True)
+        
+        currentHourUtc = datetime.datetime.utcnow().hour
+        currentHour = (currentHourUtc + tzOffsetHours) % 24
+        
+        for dataPoint in selectedData:
+            if len(uniqueHours) >= self.powerConfig.hours:
+                break
+            try:
+                dateStr = dataPoint.get('localDate')
+                
+                if dateStr:
+                    dt = datetime.datetime.fromisoformat(dateStr)
+                    uniqueHours.add(dt.hour)
+            except Exception as e:
+                self.logger.log_error(f"Failed to parse timestamp: {dataPoint.get('localDate')} - {str(e)}", True)
+        
+        result = currentHour in uniqueHours
+        self.logger.log_info(f"Hour-Based Evaluation: Current hour: {currentHour} - Data Hours:{sorted(uniqueHours)}", True)
+        return result
         
     def _handleHttpError(self, response: Response):
         errCode = response.status_code
@@ -123,10 +164,17 @@ class DataHandler:
 
         config = config[0]
 
-        self.confCompany = config['company']
-        self.confMaxPrice = config['price']
+        mode = config['selectionMode']
+        self.powerConfig.company = config['company']
+        self.powerConfig.hours = config['numberOfHours']
+        self.powerConfig.price = config['price']
 
-        self.logger.log_info(f'Fetched Company and Max Price: [{self.confCompany}, {self.confMaxPrice} kr/kwh]', True)
+        if "hour" in mode:
+            self.powerConfig.mode = PowerMode.HOUR_BASED
+        elif "price" in mode:
+            self.powerConfig.mode = PowerMode.PRICE_BASED
+
+        self.logger.log_info(f'Fetched Config: SelectionMode: {self.powerConfig.mode} - Company: {self.powerConfig.company} - Hours: {self.powerConfig.hours} - MaxPrice: {self.powerConfig.price}', True)
 
         compId = self.__getCompanyId()
 
