@@ -3,11 +3,7 @@ from data_handler import DataHandler
 from logger import Log
 import psutil
 import time
-from enum import Enum
-
-class PowerMode(Enum):
-    PRICE_BASED = 1,
-    HOUR_BASED = 2
+from models import *
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -18,8 +14,6 @@ class PowerPi:
         self.hasRead = False
         self.lastLoggedSecond = -1
         self.enableCharger = False
-
-        self.mode = PowerMode.PRICE_BASED
 
     def printUsage(self):
         process = psutil.Process()
@@ -37,11 +31,12 @@ class PowerPi:
                 self.lastLoggedSecond = elapsedInt
 
             if elapsedTime > self.dataInterval:
-                self.logger.log_info(f"Mode: {"Price-Based" if self.mode == PowerMode.PRICE_BASED else "Hour-Based"}")
 
                 self.logger.log_divider()
 
                 self.data.updatePowerConfig()
+
+                pConf = self.data.getPowerConfig()
 
                 priceUrl = self.data.getPriceUrl()
                 rawData = None
@@ -55,13 +50,17 @@ class PowerPi:
 
                 self.data.savePriceData(rawData)
 
-                if self.mode == PowerMode.PRICE_BASED:
-                    self.enableCharger = self.data.evaluate(rawData)
-                    self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
-                elif self.mode == PowerMode.HOUR_BASED:
+                self.logger.log_info(f"Mode: {"Price-Based" if pConf.mode == PowerMode.PRICE_BASED else "Hour-Based"}", True)
+
+                if pConf.mode == PowerMode.PRICE_BASED:
+                    self.enableCharger = self.data.evaluate_PriceBased(rawData)
+
+                elif pConf.mode == PowerMode.HOUR_BASED:
                     priceData = rawData['prices']
                     priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
-                    print(priceDataSorted)
+                    self.enableCharger = self.data.evaluate_HourBased(priceDataSorted)
+
+                self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
 
                 self.printUsage()
                 self.logger.log_divider()

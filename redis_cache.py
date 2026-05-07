@@ -11,14 +11,13 @@ class RedisCache:
         self.logger = Log()
 
     def _findKey(self, name):
-        self.logger.log_info(f"Redis Keys: {self.r.keys()}", True)
         for cache in self.r.keys():
             if name in cache:
                 return cache
         return None
 
     def getLastCacheTime(self, name):
-        self.logger.log_info("Printing all Redis Keys:", True)
+        self.logger.log_info(f"All Redis Keys: {self.r.keys()}", True)
 
         cache = self._findKey(name)
         
