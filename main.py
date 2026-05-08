@@ -15,14 +15,14 @@ class PowerPi:
         self.hasRead = False
         self.lastLoggedSecond = -1
         self.enableCharger = False
-        self.shutdown_requested = False
+        self.shutdownRequested = False
         
         signal.signal(signal.SIGINT, self._handle_shutdown)
         signal.signal(signal.SIGTERM, self._handle_shutdown)
     
     def _handle_shutdown(self, signum, frame):
         self.logger.log_info("Shutdown signal received, gracefully shutting down...", True)
-        self.shutdown_requested = True
+        self.shutdownRequested = True
 
     def printUsage(self):
         process = psutil.Process()
@@ -32,7 +32,7 @@ class PowerPi:
 
     def start(self):
         try:
-            while not self.shutdown_requested:
+            while not self.shutdownRequested:
                 elapsedTime = self.data.getLastGetTime()
                 elapsedInt = int(elapsedTime)
 
