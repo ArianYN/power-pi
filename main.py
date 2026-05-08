@@ -33,7 +33,7 @@ class PowerPi:
     def start(self):
         try:
             while not self.shutdownRequested:
-                time.sleep(5)
+                time.sleep(1)
                 elapsedTime = self.data.getLastGetTime()
                 elapsedInt = int(elapsedTime)
 
