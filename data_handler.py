@@ -144,10 +144,14 @@ class DataHandler:
     
     def updatePowerConfig(self):
         elapsedTime = int(time.time()) - self.allCompanies_GetTime
+        
         if elapsedTime > 600:
             self.allCompanies = API.Get(self.companiesUrl)
-            self.rCache.write(self.allCompanies_Filename, self.allCompanies)
-            self.allCompanies_GetTime = self.rCache.getLastCacheTime(self.allCompanies_Filename)
+            if self.allCompanies != None:
+                self.rCache.write(self.allCompanies_Filename, self.allCompanies)
+                self.allCompanies_GetTime = self.rCache.getLastCacheTime(self.allCompanies_Filename)
+            else:
+                self.logger.log_warning("Could not retrieve companies...", True)
         else:
             self.allCompanies = self.rCache.readAll(self.allCompanies_Filename)
         

@@ -4,6 +4,7 @@ from logger import Log
 import psutil
 import time
 from models import *
+import signal
 
 class PowerPi:
     def __init__(self, dataIntervalSeconds):
@@ -14,6 +15,14 @@ class PowerPi:
         self.hasRead = False
         self.lastLoggedSecond = -1
         self.enableCharger = False
+        self.shutdownRequested = False
+        
+        signal.signal(signal.SIGINT, self._handle_shutdown)
+        signal.signal(signal.SIGTERM, self._handle_shutdown)
+    
+    def _handle_shutdown(self, signum, frame):
+        self.logger.log_info("Shutdown signal received, gracefully shutting down...", True)
+        self.shutdownRequested = True
 
     def printUsage(self):
         process = psutil.Process()
@@ -22,52 +31,57 @@ class PowerPi:
         self.logger.log_info(f"CPU: {process.cpu_percent()} %", True)
 
     def start(self):
-        while True:
-            elapsedTime = self.data.getLastGetTime()
-            elapsedInt = int(elapsedTime)
+        try:
+            while not self.shutdownRequested:
+                elapsedTime = self.data.getLastGetTime()
+                elapsedInt = int(elapsedTime)
 
-            if elapsedInt % 50 == 0 and elapsedInt != self.lastLoggedSecond:
-                self.logger.log_info(f"Fetching data in {self.dataInterval - elapsedInt} seconds", True)
-                self.lastLoggedSecond = elapsedInt
+                if elapsedInt % 50 == 0 and elapsedInt != self.lastLoggedSecond:
+                    self.logger.log_info(f"Fetching data in {self.dataInterval - elapsedInt} seconds", True)
+                    self.lastLoggedSecond = elapsedInt
 
-            if elapsedTime > self.dataInterval:
+                if elapsedTime > self.dataInterval:
 
-                self.logger.log_divider()
+                    self.logger.log_divider()
 
-                self.data.updatePowerConfig()
+                    self.data.updatePowerConfig()
 
-                pConf = self.data.getPowerConfig()
+                    pConf = self.data.getPowerConfig()
 
-                priceUrl = self.data.getPriceUrl()
-                rawData = None
+                    priceUrl = self.data.getPriceUrl()
+                    rawData = None
 
-                if priceUrl != '':
-                    rawData = API.Get(priceUrl)
+                    if priceUrl != '':
+                        rawData = API.Get(priceUrl)
+                    else:
+                        self.logger.log_info("Retrying in 5 seconds...")
+                        time.sleep(5)
+                        continue
+
+                    self.data.savePriceData(rawData)
+
+                    self.logger.log_info(f"Mode: {"Price-Based" if pConf.mode == PowerMode.PRICE_BASED else "Hour-Based"}", True)
+
+                    if pConf.mode == PowerMode.PRICE_BASED:
+                        self.enableCharger = self.data.evaluate_PriceBased(rawData)
+
+                    elif pConf.mode == PowerMode.HOUR_BASED:
+                        priceData = rawData['prices']
+                        priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
+                        self.enableCharger = self.data.evaluate_HourBased(priceDataSorted)
+
+                    self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
+
+                    self.printUsage()
+                    self.logger.log_divider()
                 else:
-                    self.logger.log_info("Retrying in 5 seconds...")
-                    time.sleep(5)
-                    continue
-
-                self.data.savePriceData(rawData)
-
-                self.logger.log_info(f"Mode: {"Price-Based" if pConf.mode == PowerMode.PRICE_BASED else "Hour-Based"}", True)
-
-                if pConf.mode == PowerMode.PRICE_BASED:
-                    self.enableCharger = self.data.evaluate_PriceBased(rawData)
-
-                elif pConf.mode == PowerMode.HOUR_BASED:
-                    priceData = rawData['prices']
-                    priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
-                    self.enableCharger = self.data.evaluate_HourBased(priceDataSorted)
-
-                self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
-
-                self.printUsage()
-                self.logger.log_divider()
-            else:
-                if not self.hasRead:
-                    self.logger.log_info(f"Fetching data in {self.dataInterval - int(elapsedTime)} seconds", True)
-                    self.hasRead = True
+                    if not self.hasRead:
+                        self.logger.log_info(f"Fetching data in {self.dataInterval - int(elapsedTime)} seconds", True)
+                        self.hasRead = True
+        except (SystemExit, KeyboardInterrupt) as ex:
+            self.logger.log_info("Shutdown complete", True)
+        finally:
+            self.logger.log_info("Application terminated", True)
 
 powerPi = PowerPi(300)
 powerPi.start()
