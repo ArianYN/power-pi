@@ -6,6 +6,11 @@ services:
   app:
     build: .
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128m
     depends_on:
       - redis
     volumes:
