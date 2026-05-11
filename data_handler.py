@@ -144,7 +144,7 @@ class DataHandler:
         response = API.PatchWithToken(self.chargingUrl, self.token, body)
 
         if response.status_code == 200 or response.status_code == 201:
-            self.logger.log_info(f"Set Charging Flag: {charging}")
+            self.logger.log_info(f"Set Charging Flag: {charging}", True)
         else:
             self._handleHttpError(response)
         
