@@ -18,6 +18,7 @@ class DataHandler:
         self.companiesUrl = "https://stromligning.dk/api/companies?region=DK1&periodMonths=1"
         self.priceUrl = ""
         self.configUrl = f"https://powerpi.mercantec.tech/power-table?userId=auth0|{_config.USER_ID}"
+        self.chargingUrl = f"https://powerpi.mercantec.tech/charging?userId=auth0|{_config.USER_ID}"
 
         self.priceData_Filename = "priceCache"
         self.allCompanies_Filename = "companiesCache"
@@ -129,6 +130,23 @@ class DataHandler:
         result = currentHour in uniqueHours
         self.logger.log_info(f"Hour-Based Evaluation: Current hour: {currentHour} - Data Hours:{sorted(uniqueHours)}", True)
         return result
+    
+    def updateDatabaseFlag(self, charging):
+        body = {
+            "charging": charging
+        }
+
+        if self.token == None:
+            self.logger.log_warning("No Token - Trying to fetch new token...")
+            if not self._fetchNewToken():
+                return
+            
+        response = API.PatchWithToken(self.chargingUrl, self.token, body)
+
+        if response.status_code == 200 or response.status_code == 201:
+            self.logger.log_info(f"Set Charging Flag: {charging}")
+        else:
+            self._handleHttpError(response)
         
     def _handleHttpError(self, response: Response):
         errCode = response.status_code
@@ -136,11 +154,11 @@ class DataHandler:
         description = response.text
         
         if errCode == 401:
-            self.logger.log_warning(f"{errCode} {reason} - {description} - Fetching new...")
+            self.logger.log_warning(f"{errCode} {reason} - {description} - Fetching new...", True)
             if self._fetchNewToken():
                 self.updatePowerConfig()
-        else:
-            self.logger.log_error(f"{errCode} {reason} - {description}")
+        elif errCode != 201 and errCode != 200:
+            self.logger.log_error(f"{errCode} {reason} - {description}", True)
     
     def updatePowerConfig(self):
         elapsedTime = int(time.time()) - self.allCompanies_GetTime

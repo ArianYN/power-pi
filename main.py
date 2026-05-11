@@ -71,6 +71,8 @@ class PowerPi:
                         priceDataSorted = sorted(priceData, key=lambda item: item['price']['total'])
                         self.enableCharger = self.data.evaluate_HourBased(priceDataSorted)
 
+                    self.data.updateDatabaseFlag(self.enableCharger)
+
                     self.logger.log_info(f"Charger Enabled: {self.enableCharger}", True)
 
                     self.printUsage()

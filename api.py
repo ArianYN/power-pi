@@ -10,10 +10,31 @@ class API:
         try:
             response = requests.get(url)
             response.raise_for_status()
+        except requests.HTTPError:
+            return response
         except:
-            return None
+            return response
         return response.json()
     
+    @staticmethod
+    def Post(url, data):
+        response = None
+        try:
+            response = requests.post(url, data)
+            response.raise_for_status()
+        except requests.HTTPError:
+            return response
+        except:
+            return response
+        return response.json()
+    
+    @staticmethod
+    def PatchWithToken(url, token, data):
+        headers = {"Authorization": f"Bearer {token}"}
+        response = None
+        response = requests.patch(url, json=data, headers=headers)
+        return response
+
     @staticmethod
     def GetWithToken(url, token):
         headers = {"Authorization": f"Bearer {token}"}
