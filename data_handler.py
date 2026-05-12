@@ -47,7 +47,7 @@ class DataHandler:
                 return True
         except:
             self.token = None
-        self.logger.log_error("Failed to get new token...")
+        self.logger.log_error("Failed to get new token...", True)
         return False
 
     def __getCompanyId(self):
@@ -57,7 +57,7 @@ class DataHandler:
             if name == self.powerConfig.company:
                 products = company["products"]
                 if len(products) == 0:
-                    self.logger.log_error("No Products for Company - Returning empty string")
+                    self.logger.log_error("No Products for Company - Returning empty string", True)
                     return ""
                 id = products[0]["id"]
                 return id
